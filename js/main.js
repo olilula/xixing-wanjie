@@ -1,5 +1,5 @@
 /**
- * 游戏主入口 - 初始化 & 主循环
+ * 游戏主入口（v1.1 - 新指令路由/体力/装备）
  */
 import { gameState } from './engine/state.js';
 import { renderer } from './engine/renderer.js';
@@ -8,12 +8,10 @@ import { saveSystem } from './engine/save.js';
 import { mapSystem } from './systems/map.js';
 import { characterSystem } from './systems/character.js';
 
-// ===== 初始化 =====
 function init() {
     bindEvents();
     showTitle();
 
-    // 检查是否有存档
     if (saveSystem.hasAutoSave()) {
         renderer.blank();
         renderer.printSystem('检测到上次的存档。输入"读档"继续，或输入"新游戏"重新开始。');
@@ -22,7 +20,6 @@ function init() {
     }
 }
 
-// ===== 显示标题 =====
 function showTitle() {
     renderer.clear();
     renderer.print(`
@@ -41,7 +38,6 @@ function showTitle() {
     renderer.divider('═');
 }
 
-// ===== 新游戏 =====
 function startNewGame() {
     gameState.reset();
     gameState.flags.gameStarted = true;
@@ -54,26 +50,41 @@ function startNewGame() {
     renderer.print('（默认角色：人族·孤儿·剑道。后续版本将开放自定义创建。）', 'system');
     renderer.blank();
 
-    // 初始物品
+    // 初始物品（增加数值）
     gameState.character.inventory.push(
-        { name: '生锈的铁剑', type: '武器', attack: 5, quality: '凡品', description: '一把锈迹斑斑的铁剑。' },
-        { name: '金创药', type: '丹药', effect: { hp: 50 }, description: '普通外伤药。' },
-        { name: '干粮', type: '杂物', description: '几块硬邦邦的干饼。' }
+        {
+            name: '生锈的铁剑', type: '武器', quality: '凡品',
+            attack: 5, levelReq: 1,
+            description: '一把锈迹斑斑的铁剑，剑身有缺口，但勉强还能用。'
+        },
+        {
+            name: '粗布衣', type: '防具', quality: '凡品',
+            defense: 3, levelReq: 1,
+            description: '普通的粗布衣裳，聊胜于无。'
+        },
+        {
+            name: '金创药', type: '丹药', quality: '凡品',
+            effect: { hp: 50 },
+            description: '普通外伤药，涂抹后可止血生肌。'
+        },
+        {
+            name: '干粮', type: '食物', quality: '凡品',
+            staminaRestore: 25, edible: true,
+            description: '几块硬邦邦的干饼，能填饱肚子。'
+        }
     );
     gameState.character.copper = 50;
 
-    // 进入第一个场景
     renderer.printSystem('═══ 游戏开始 ═══');
     renderer.blank();
     mapSystem.look();
+    updateStatusBar();
 }
 
-// ===== 事件绑定 =====
 function bindEvents() {
     const input = document.getElementById('command-input');
     const sendBtn = document.getElementById('send-btn');
 
-    // 回车提交
     input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
             handleCommand(input.value);
@@ -81,14 +92,12 @@ function bindEvents() {
         }
     });
 
-    // 按钮提交
     sendBtn.addEventListener('click', () => {
         handleCommand(input.value);
         input.value = '';
         input.focus();
     });
 
-    // 快捷按钮
     document.querySelectorAll('#quick-nav button').forEach(btn => {
         btn.addEventListener('click', () => {
             handleCommand(btn.dataset.cmd);
@@ -96,19 +105,15 @@ function bindEvents() {
         });
     });
 
-    // 点击输出区也聚焦输入框
     document.getElementById('output-area').addEventListener('click', () => {
         input.focus();
     });
 }
 
-// ===== 指令处理主函数 =====
 function handleCommand(raw) {
     if (!raw || !raw.trim()) return;
 
-    // 回显玩家输入
     renderer.printInput(raw);
-
     const cmd = parser.parse(raw);
 
     switch (cmd.type) {
@@ -120,33 +125,53 @@ function handleCommand(raw) {
             handleSystemCommand(cmd.verb);
             break;
 
+        case 'quick':
+            handleQuickCommand(cmd.verb);
+            break;
+
         case 'action':
             handleAction(cmd.verb, cmd.target);
             break;
 
         case 'unknown':
-            // 特殊处理
-            if (raw === '新游戏' || raw === '重新开始') {
-                startNewGame();
-            } else if (raw === '突破') {
-                characterSystem.breakthrough();
-            } else {
-                renderer.print(`你不太明白"${raw}"是什么意思。（输入"帮助"查看可用指令）`);
-            }
+            renderer.print(`你不太明白"${cmd.raw}"是什么意思。（输入"帮助"查看可用指令）`);
             break;
 
         case 'empty':
             break;
     }
 
-    // 自动存档（每10次操作）
     gameState.stats.playTime++;
     if (gameState.stats.playTime % 10 === 0) {
         saveSystem.autoSave();
     }
+
+    // 每次操作后更新状态栏
+    updateStatusBar();
 }
 
-// ===== 系统命令处理 =====
+// ===== 新增：快捷指令处理（默认目标） =====
+function handleQuickCommand(verb) {
+    switch (verb) {
+        case 'talk':
+            mapSystem.talkToNPC(null); // null = 默认第一个NPC
+            break;
+        case 'take':
+            mapSystem.takeItem(null); // null = 默认第一个物品
+            break;
+        case 'attack':
+            handleAttack(null);
+            break;
+        case 'meditate':
+            characterSystem.meditate();
+            break;
+        case 'rest':
+            characterSystem.rest();
+            break;
+    }
+}
+// ========================================
+
 function handleSystemCommand(verb) {
     switch (verb) {
         case 'status':
@@ -176,29 +201,24 @@ function handleSystemCommand(verb) {
             renderer.clear();
             break;
         case 'equip_list':
-            renderer.printSystem('装备系统将在后续版本中开放。');
+            characterSystem.showEquipList();
+            break;
+        case 'newgame':
+            startNewGame();
             break;
         default:
-            renderer.printError(`未知系统命令：${verb}`);
+            renderer.printError(`未知命令：${verb}`);
     }
 }
 
-// ===== 动作命令处理 =====
 function handleAction(verb, target) {
     switch (verb) {
         case 'look':
-            if (target) {
-                mapSystem.lookAt(target);
-            } else {
-                mapSystem.look();
-            }
+            if (target) mapSystem.lookAt(target);
+            else mapSystem.look();
             break;
         case 'take':
-            if (target) {
-                mapSystem.takeItem(target);
-            } else {
-                renderer.print('拿什么？');
-            }
+            mapSystem.takeItem(target);
             break;
         case 'search':
             mapSystem.search();
@@ -206,19 +226,29 @@ function handleAction(verb, target) {
         case 'meditate':
             characterSystem.meditate();
             break;
+        case 'rest':
+            characterSystem.rest();
+            break;
+        case 'eat':
+            characterSystem.eat(target);
+            break;
         case 'use':
-            if (target) {
-                characterSystem.useItem(target);
-            } else {
-                renderer.print('使用什么？');
-            }
+            characterSystem.useItem(target);
+            break;
+        case 'equip':
+            characterSystem.equipItem(target);
+            break;
+        case 'unequip':
+            characterSystem.unequipItem(target);
             break;
         case 'talk':
-            if (target) {
-                talkToNPC(target);
-            } else {
-                renderer.print('和谁说话？');
-            }
+            mapSystem.talkToNPC(target);
+            break;
+        case 'attack':
+            handleAttack(target);
+            break;
+        case 'breakthrough':
+            characterSystem.breakthrough();
             break;
         case 'listen':
             renderer.print('你侧耳倾听……只有风声和远处的鸟鸣。');
@@ -228,42 +258,104 @@ function handleAction(verb, target) {
     }
 }
 
-// ===== 与NPC对话 =====
-function talkToNPC(name) {
+// ===== 新增：攻击处理（占位，第2批实现完整战斗） =====
+function handleAttack(target) {
     const scene = mapSystem.getCurrentScene();
-    if (!scene || !scene.npcs) {
-        renderer.print('这里没有人可以交谈。');
+
+    // 检查场景中是否有怪物
+    if (!scene || !scene.monsters || scene.monsters.length === 0) {
+        renderer.print('这里没有可以攻击的目标。');
         return;
     }
-    const npc = scene.npcs.find(n => n.name === name || n.alias === name);
-    if (npc) {
-        if (npc.greeting) {
-            renderer.printNPC(npc.name, npc.greeting);
-        } else {
-            renderer.print(`${npc.name}看了你一眼，没有说话。`);
+
+    const enemy = target
+        ? scene.monsters.find(m => m.name === target)
+        : scene.monsters[0];
+
+    if (!enemy) {
+        renderer.print(`这里没有"${target}"。`);
+        return;
+    }
+
+    // 检查体力
+    if (!gameState.isStaminaEnough(15)) {
+        renderer.printError('体力不足！战斗需要至少15点体力。');
+        return;
+    }
+
+    renderer.print(`你握紧武器，向${enemy.name}发起攻击！`, 'combat');
+    renderer.printSystem('（完整战斗系统将在第2批代码中实现，当前为简化版）');
+    renderer.blank();
+
+    // 简化战斗
+    gameState.consumeStamina(15);
+    const bonus = characterSystem.getEquipBonus();
+    const playerAtk = 10 + gameState.character.attrs.gengu + bonus.attack;
+    const dmg = playerAtk + Math.floor(Math.random() * 5);
+
+    renderer.printCombat(`  你造成了 ${dmg} 点伤害！`);
+    renderer.print(`  体力 -15（剩余：${gameState.character.stamina}）`, 'system');
+
+    // 简单击杀判定
+    if (!enemy.hp) enemy.hp = 50;
+    enemy.hp -= dmg;
+
+    if (enemy.hp <= 0) {
+        renderer.printCombat(`  ${enemy.name}被击败了！`);
+        gameState.stats.monstersKilled++;
+        // 移除怪物
+        const idx = scene.monsters.indexOf(enemy);
+        if (idx > -1) scene.monsters.splice(idx, 1);
+        // 奖励
+        const expGain = enemy.expReward || 20;
+        gameState.character.exp += expGain;
+        renderer.print(`  获得修为 +${expGain}`, 'item');
+        if (enemy.drops) {
+            enemy.drops.forEach(d => {
+                gameState.character.inventory.push(d);
+                renderer.printItemGet(d.name);
+            });
         }
     } else {
-        renderer.print(`这里没有叫"${name}"的人。`);
+        renderer.printCombat(`  ${enemy.name}还剩 ${enemy.hp} 点生命，它怒吼着向你扑来！`);
+        const enemyDmg = (enemy.attack || 8) + Math.floor(Math.random() * 3);
+        const defense = characterSystem.getEquipBonus().defense;
+        const actualDmg = Math.max(1, enemyDmg - defense);
+        gameState.character.hp -= actualDmg;
+        renderer.printCombat(`  你受到了 ${actualDmg} 点伤害！（HP:${gameState.character.hp}/${gameState.character.maxHp}）`);
+
+        if (gameState.character.hp <= 0) {
+            gameState.character.hp = 1;
+            renderer.printError('你险些丧命！勉强稳住身形……');
+        }
     }
 }
+// ========================================
 
-// ===== 帮助信息 =====
 function showHelp() {
     renderer.divider('═');
     renderer.print('【指令帮助】', 'highlight');
     renderer.divider('─');
     renderer.print('移动：北/南/东/西/上/下（或 n/s/e/w/u/d）', 'normal');
     renderer.print('查看：看 / 看[目标] / 搜索', 'normal');
-    renderer.print('拾取：拿[物品名]', 'normal');
-    renderer.print('对话：说[NPC名] / 对话[NPC名]', 'normal');
-    renderer.print('修炼：打坐 / 修炼', 'normal');
-    renderer.print('突破：突破（修为满时可用）', 'normal');
-    renderer.print('使用：用[物品名]', 'normal');
+    renderer.print('拾取：拿[物品名] / 拾取（自动选第一个）', 'normal');
+    renderer.print('对话：说[NPC名] / 对话（自动选第一个）', 'normal');
+    renderer.print('攻击：攻击[怪物名] / 攻击（自动选第一个）', 'normal');
+    renderer.print('修炼：打坐 / 修炼（消耗体力）', 'normal');
+    renderer.print('休息：休息（恢复体力）', 'normal');
+    renderer.print('饮食：吃[食物名]（恢复体力）', 'normal');
+    renderer.print('装备：穿[装备名] / 卸下[装备名] / 装备栏', 'normal');
+    renderer.print('使用：用[物品名]（丹药等）', 'normal');
+    renderer.print('突破：突破（修为满时可用，消耗体力）', 'normal');
     renderer.print('系统：状态 / 背包 / 地图 / 存档 / 读档 / 帮助 / 清屏', 'normal');
     renderer.divider('─');
-    renderer.print('提示：直接输入方向字即可移动，如输入"北"或"n"。', 'system');
+    renderer.print('体力系统：打坐-10 战斗-15 突破-20 | 休息+30 食物+20~40', 'system');
     renderer.divider('═');
 }
 
-// ===== 启动 =====
+// ===== 更新状态栏 =====
+function updateStatusBar() {
+    renderer.updateStatusBar(gameState);
+}
+
 document.addEventListener('DOMContentLoaded', init);
