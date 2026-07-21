@@ -1,9 +1,4 @@
-/* ===== 全局重置 ===== */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
     --bg-primary: #1a1a2e;
@@ -28,7 +23,6 @@ body {
     overflow: hidden;
 }
 
-/* ===== 游戏容器 ===== */
 #game-container {
     display: flex;
     flex-direction: column;
@@ -39,7 +33,6 @@ body {
     border-right: 1px solid var(--border-color);
 }
 
-/* ===== 顶部状态栏 ===== */
 #status-bar {
     display: flex;
     justify-content: space-between;
@@ -52,17 +45,13 @@ body {
     gap: 4px;
 }
 
-#game-title {
-    color: var(--text-highlight);
-    font-weight: bold;
-    font-size: 15px;
-}
-
+#game-title { color: var(--text-highlight); font-weight: bold; font-size: 15px; }
 #char-info { color: var(--text-system); }
+#hp-mp-info { color: var(--text-combat); }
+#stamina-info { color: #ffa94d; }
 #resource-info { color: var(--text-item); }
 #time-info { color: var(--text-secondary); }
 
-/* ===== 主输出区 ===== */
 #output-area {
     flex: 1;
     overflow-y: auto;
@@ -72,15 +61,9 @@ body {
     scroll-behavior: smooth;
 }
 
-#output-area::-webkit-scrollbar {
-    width: 6px;
-}
-#output-area::-webkit-scrollbar-thumb {
-    background: var(--border-color);
-    border-radius: 3px;
-}
+#output-area::-webkit-scrollbar { width: 6px; }
+#output-area::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
 
-/* 文字类型样式 */
 .text-normal { color: var(--text-primary); margin-bottom: 8px; }
 .text-scene { color: var(--text-primary); margin-bottom: 12px; padding: 8px 0; border-bottom: 1px dashed var(--border-color); }
 .text-system { color: var(--text-system); font-style: italic; margin-bottom: 6px; }
@@ -93,7 +76,6 @@ body {
 .text-exit { color: var(--text-secondary); font-size: 13px; margin-top: 8px; }
 .text-input-echo { color: #888; margin-bottom: 4px; font-size: 13px; }
 
-/* ===== 输入区 ===== */
 #input-area {
     display: flex;
     align-items: center;
@@ -103,11 +85,7 @@ body {
     gap: 8px;
 }
 
-.prompt-symbol {
-    color: var(--accent);
-    font-weight: bold;
-    font-size: 18px;
-}
+.prompt-symbol { color: var(--accent); font-weight: bold; font-size: 18px; }
 
 #command-input {
     flex: 1;
@@ -122,9 +100,7 @@ body {
     transition: border-color 0.2s;
 }
 
-#command-input:focus {
-    border-color: var(--accent);
-}
+#command-input:focus { border-color: var(--accent); }
 
 #send-btn {
     background: var(--accent);
@@ -141,11 +117,10 @@ body {
 #send-btn:hover { opacity: 0.85; }
 #send-btn:active { transform: scale(0.97); }
 
-/* ===== 底部快捷按钮 ===== */
 #quick-nav {
     display: flex;
     justify-content: center;
-    gap: 8px;
+    gap: 6px;
     padding: 8px 16px;
     background: var(--bg-secondary);
     border-top: 1px solid var(--border-color);
@@ -157,22 +132,18 @@ body {
     color: var(--text-secondary);
     border: 1px solid var(--border-color);
     border-radius: 3px;
-    padding: 5px 14px;
+    padding: 5px 12px;
     cursor: pointer;
     font-size: 12px;
     font-family: inherit;
     transition: all 0.2s;
 }
 
-#quick-nav button:hover {
-    color: var(--text-primary);
-    border-color: var(--accent);
-}
+#quick-nav button:hover { color: var(--text-primary); border-color: var(--accent); }
 
-/* ===== 响应式 ===== */
 @media (max-width: 600px) {
     #output-area { font-size: 14px; padding: 12px 14px; }
     #status-bar { font-size: 11px; padding: 6px 10px; }
     #command-input { font-size: 14px; padding: 8px 10px; }
-    #quick-nav button { padding: 4px 10px; font-size: 11px; }
+    #quick-nav button { padding: 4px 8px; font-size: 11px; }
 }
