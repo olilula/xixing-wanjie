@@ -1,9 +1,11 @@
 /**
- * 地图/场景系统（v1.1 - 增加默认目标获取）
+ * 地图/场景系统（v2.0 - 随机遇敌）
  */
 import { gameState } from '../engine/state.js';
 import { renderer } from '../engine/renderer.js';
 import { SCENES } from '../data/scenes.js';
+import { getRandomMonster } from '../data/monsters.js';
+import { combatSystem } from './combat.js';
 
 export class MapSystem {
 
@@ -15,31 +17,17 @@ export class MapSystem {
         return SCENES[id] || null;
     }
 
-    // ===== 新增：获取默认目标 =====
     getDefaultNPC() {
         const scene = this.getCurrentScene();
-        if (scene && scene.npcs && scene.npcs.length > 0) {
-            return scene.npcs[0];
-        }
+        if (scene && scene.npcs && scene.npcs.length > 0) return scene.npcs[0];
         return null;
     }
 
     getDefaultItem() {
         const scene = this.getCurrentScene();
-        if (scene && scene.items && scene.items.length > 0) {
-            return scene.items[0];
-        }
+        if (scene && scene.items && scene.items.length > 0) return scene.items[0];
         return null;
     }
-
-    getDefaultEnemy() {
-        const scene = this.getCurrentScene();
-        if (scene && scene.monsters && scene.monsters.length > 0) {
-            return scene.monsters[0];
-        }
-        return null;
-    }
-    // ================================
 
     move(direction) {
         const scene = this.getCurrentScene();
@@ -62,7 +50,7 @@ export class MapSystem {
         }
 
         if (targetScene.requireFlag && !gameState.flags[targetScene.requireFlag]) {
-            renderer.print(targetScene.lockedMsg || '这条路似乎被什么挡住了，暂时无法通过。');
+            renderer.print(targetScene.lockedMsg || '这条路暂时无法通过。');
             return false;
         }
 
@@ -78,14 +66,40 @@ export class MapSystem {
         renderer.printScene(targetScene);
         this._triggerSceneEvent(targetScene);
 
+        // ===== 新增：随机遇敌 =====
+        this._checkRandomEncounter(targetScene);
+        // ============================
+
         return true;
     }
 
+    // ===== 新增：随机遇敌 =====
+    _checkRandomEncounter(scene) {
+        // 安全区域不遇敌
+        if (scene.safe) return;
+        // 已在战斗中不触发
+        if (combatSystem.isInCombat()) return;
+
+        const encounterRate = scene.encounterRate || 0;
+        if (encounterRate <= 0) return;
+
+        if (Math.random() < encounterRate) {
+            // 从怪物库中按区域随机
+            const area = scene.monsterArea || scene.area;
+            const monster = getRandomMonster(area);
+            if (monster) {
+                renderer.blank();
+                renderer.printCombat(`  ⚠ 前方出现了一个${monster.name}！`);
+                // 延迟进入战斗（给玩家看到提示）
+                combatSystem.startCombat(monster);
+            }
+        }
+    }
+    // ============================
+
     look() {
         const scene = this.getCurrentScene();
-        if (scene) {
-            renderer.printScene(scene);
-        }
+        if (scene) renderer.printScene(scene);
     }
 
     lookAt(target) {
@@ -95,10 +109,8 @@ export class MapSystem {
         if (scene.npcs) {
             const npc = scene.npcs.find(n => n.name === target || n.alias === target);
             if (npc) {
-                renderer.print(npc.description || `你仔细打量${npc.name}，看不出什么特别的。`, 'normal');
-                if (npc.greeting) {
-                    renderer.printNPC(npc.name, npc.greeting);
-                }
+                renderer.print(npc.description || `你仔细打量${npc.name}。`, 'normal');
+                if (npc.greeting) renderer.printNPC(npc.name, npc.greeting);
                 return;
             }
         }
@@ -107,6 +119,16 @@ export class MapSystem {
             const item = scene.items.find(i => i.name === target);
             if (item) {
                 renderer.print(item.description || `那是${item.name}。`, 'item');
+                return;
+            }
+        }
+
+        // 查看怪物
+        if (scene.monsters) {
+            const mon = scene.monsters.find(m => m.name === target);
+            if (mon) {
+                renderer.print(mon.description || `一只${mon.name}。`, 'combat');
+                renderer.print(`  Lv.${mon.level}  HP:${mon.hp}  攻:${mon.attack}  防:${mon.defense}`, 'combat');
                 return;
             }
         }
@@ -150,13 +172,11 @@ export class MapSystem {
             return;
         }
 
-        // ===== 修改：支持默认目标 =====
         let targetName = itemName;
         if (!targetName) {
             targetName = scene.items[0].name;
             renderer.print(`（自动选择：${targetName}）`, 'system');
         }
-        // ================================
 
         const idx = scene.items.findIndex(i => i.name === targetName);
         if (idx === -1) {
@@ -182,7 +202,6 @@ export class MapSystem {
             return;
         }
 
-        // ===== 修改：支持默认目标 =====
         let npc;
         if (!name) {
             npc = scene.npcs[0];
@@ -190,14 +209,10 @@ export class MapSystem {
         } else {
             npc = scene.npcs.find(n => n.name === name || n.alias === name);
         }
-        // ================================
 
         if (npc) {
-            if (npc.greeting) {
-                renderer.printNPC(npc.name, npc.greeting);
-            } else {
-                renderer.print(`${npc.name}看了你一眼，没有说话。`);
-            }
+            if (npc.greeting) renderer.printNPC(npc.name, npc.greeting);
+            else renderer.print(`${npc.name}看了你一眼，没有说话。`);
         } else {
             renderer.print(`这里没有叫"${name}"的人。`);
         }
@@ -221,10 +236,7 @@ export class MapSystem {
         renderer.blank();
         if (scene.exits) {
             renderer.print('可前往：', 'system');
-            const dirNames = {
-                north:'北', south:'南', east:'东', west:'西',
-                up:'上', down:'下', enter:'进', exit:'出'
-            };
+            const dirNames = { north:'北', south:'南', east:'东', west:'西', up:'上', down:'下', enter:'进', exit:'出' };
             Object.entries(scene.exits).forEach(([dir, targetId]) => {
                 const target = SCENES[targetId];
                 const visited = gameState.flags.visitedScenes.includes(targetId);
