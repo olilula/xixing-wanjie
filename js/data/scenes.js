@@ -1,10 +1,8 @@
 /**
- * 场景数据 - 首批10个场景（长安周边）
- * 后续批次会扩展到670+
+ * 场景数据（v1.1 - 物品增加完整数值/增加怪物）
  */
 export const SCENES = {
 
-    // ===== 长安城 =====
     changan_south_gate: {
         id: 'changan_south_gate',
         area: '南赡部洲·长安',
@@ -28,6 +26,7 @@ export const SCENES = {
             }
         ],
         items: [],
+        monsters: [],
         examine: {
             '城墙': '城墙高约四丈，以夯土为芯、青砖包砌，墙头每隔百步有一座敌楼。',
             '官道': '官道以碎石铺就，宽可并行四辆马车，向南直通终南山。'
@@ -68,10 +67,12 @@ export const SCENES = {
             {
                 name: '铜钱',
                 type: '货币',
+                quality: '凡品',
                 description: '地上散落着几枚开元通宝。',
                 value: 5
             }
         ],
+        monsters: [],
         searchResult: '你在人群缝隙中发现地上有几枚被人遗落的铜钱。',
         searchOnce: true,
         searchItem: { name: '铜钱×5', type: '货币', value: 5 }
@@ -98,6 +99,7 @@ export const SCENES = {
             }
         ],
         items: [],
+        monsters: [],
         examine: {
             '钟楼': '钟楼高三层，顶层悬一口巨钟，据说是前朝遗物，钟声可传十里。',
             '药铺': '回春堂，长安老字号。门口挂着"悬壶济世"的匾额。'
@@ -129,6 +131,7 @@ export const SCENES = {
             }
         ],
         items: [],
+        monsters: [],
         event: '忽然一阵骚动，几个巡城捕快冲了过来，黑市贩子们如鸟兽散。',
         eventChance: 0.15
     },
@@ -153,13 +156,13 @@ export const SCENES = {
             }
         ],
         items: [],
+        monsters: [],
         examine: {
             '石狮': '两尊汉白玉石狮，高约两丈，雕工精湛，狮口含珠，栩栩如生。',
             '宫墙': '宫墙高五丈，以糯米汁混合石灰砌成，坚如磐石。'
         }
     },
 
-    // ===== 城外 =====
     guandao_south: {
         id: 'guandao_south',
         area: '南赡部洲·长安郊外',
@@ -179,9 +182,11 @@ export const SCENES = {
             {
                 name: '止血草',
                 type: '材料',
+                quality: '凡品',
                 description: '一株生长在路边的普通草药，有止血之效。'
             }
         ],
+        monsters: [],
         event: '前方官道上，一辆牛车陷在了泥坑里，赶车的老农正急得满头大汗。',
         eventChance: 0.25
     },
@@ -210,9 +215,11 @@ export const SCENES = {
             {
                 name: '灵芝',
                 type: '材料',
+                quality: '良品',
                 description: '一株生长在老树根旁的紫色灵芝，散发着淡淡的药香。'
             }
         ],
+        monsters: [],
         searchResult: '你在灌木丛中发现了几株黄精和一棵何首乌。'
     },
 
@@ -236,6 +243,7 @@ export const SCENES = {
             }
         ],
         items: [],
+        monsters: [],
         examine: {
             '古松': '这棵古松少说也有千年树龄，树干需三人合抱，树皮上刻着几行模糊的小字。',
             '竹简': '竹简上以古篆刻着几行文字，似乎是某种功法口诀，但你看不太懂。'
@@ -264,6 +272,7 @@ export const SCENES = {
             }
         ],
         items: [],
+        monsters: [],
         examine: {
             '河水': '渭水此处宽约百丈，水流湍急，深处呈墨绿色，看不见底。',
             '芦苇': '芦苇丛中似乎有什么东西在动，但看不清楚。'
@@ -286,6 +295,23 @@ export const SCENES = {
         },
         npcs: [],
         items: [],
+        // ===== 新增：怪物 =====
+        monsters: [
+            {
+                name: '野狼',
+                level: 2,
+                hp: 40,
+                maxHp: 40,
+                attack: 8,
+                defense: 2,
+                expReward: 15,
+                drops: [
+                    { name: '狼皮', type: '材料', quality: '凡品', description: '一张完整的狼皮，可做皮甲。' }
+                ],
+                description: '一头灰毛野狼，龇着獠牙，眼中闪着凶光。'
+            }
+        ],
+        // ========================
         examine: {
             '山洞': '洞口约一人高，里面黑漆漆的，隐隐有一股腥臭味飘出。地上有新鲜的爪印。',
             '歪脖子树': '树干上刻着几个歪歪扭扭的字："前方有虎，速退！"',
@@ -308,19 +334,57 @@ export const SCENES = {
         npcs: [],
         items: [
             {
-                name: '生锈的铁剑',
+                name: '青锋剑',
                 type: '武器',
-                description: '一把锈迹斑斑的铁剑，剑身上有缺口，但勉强还能用。',
-                attack: 5,
-                quality: '凡品'
+                quality: '良品',
+                attack: 15,
+                levelReq: 3,
+                description: '剑身泛着青光，削铁如泥，是江湖中人的标配。',
+                specialEffect: '暴击率+5%'
+            },
+            {
+                name: '皮甲',
+                type: '防具',
+                quality: '良品',
+                defense: 10,
+                hp: 20,
+                levelReq: 2,
+                description: '以兽皮制成的轻甲，兼顾防护与灵活。'
             },
             {
                 name: '金创药',
                 type: '丹药',
-                description: '一小瓶金创药，可治疗外伤。',
-                effect: { hp: 50 }
+                quality: '凡品',
+                effect: { hp: 50 },
+                description: '普通的外伤药，涂抹后可止血生肌。'
+            },
+            {
+                name: '肉干',
+                type: '食物',
+                quality: '凡品',
+                staminaRestore: 30,
+                edible: true,
+                description: '风干的兽肉，咸香可口，能恢复不少体力。'
             }
         ],
+        // ===== 新增：怪物 =====
+        monsters: [
+            {
+                name: '洞穴蝙蝠王',
+                level: 3,
+                hp: 60,
+                maxHp: 60,
+                attack: 10,
+                defense: 3,
+                expReward: 25,
+                drops: [
+                    { name: '蝙蝠翼', type: '材料', quality: '凡品', description: '巨大的蝙蝠翅膀，可作为炼器材料。' },
+                    { name: '回气丹', type: '丹药', quality: '凡品', effect: { mp: 30 }, description: '恢复灵力的基础丹药。' }
+                ],
+                description: '一只翼展近丈的巨大蝙蝠，倒挂在洞顶，双目赤红。'
+            }
+        ],
+        // ========================
         searchResult: '你在洞壁缝隙中摸到了一个布包，里面有几枚铜钱和一块干粮。',
         searchOnce: true,
         searchItem: { name: '铜钱×10', type: '货币', value: 10 },
