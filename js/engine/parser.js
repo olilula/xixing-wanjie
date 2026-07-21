@@ -1,9 +1,8 @@
 /**
- * 指令解析器 - 将玩家输入解析为结构化命令
+ * 指令解析器（v1.1 - 增加快捷指令）
  */
 export class Parser {
     constructor() {
-        // 方向映射
         this.directions = {
             '北': 'north', 'n': 'north', 'north': 'north',
             '南': 'south', 's': 'south', 'south': 'south',
@@ -19,7 +18,6 @@ export class Parser {
             '西南': 'southwest', 'sw': 'southwest',
         };
 
-        // 动词映射
         this.verbs = {
             '看': 'look', '观察': 'look', '查看': 'look', 'l': 'look', 'look': 'look',
             '拿': 'take', '拾取': 'take', '捡起': 'take', '取': 'take', 'take': 'take', 'get': 'take',
@@ -33,9 +31,13 @@ export class Parser {
             '听': 'listen', 'listen': 'listen',
             '坐': 'meditate', '打坐': 'meditate', '修炼': 'meditate', 'meditate': 'meditate',
             '走': 'go', '去': 'go', '前往': 'go',
+            // ===== 新增 =====
+            '穿': 'equip', '装备': 'equip', '戴上': 'equip', 'equip': 'equip',
+            '脱': 'unequip', '卸下': 'unequip', 'unequip': 'unequip',
+            '吃': 'eat', '食': 'eat', 'eat': 'eat',
+            '休息': 'rest', 'rest': 'rest',
         };
 
-        // 系统命令
         this.systemCmds = {
             '状态': 'status', '属性': 'status', 'status': 'status', 'st': 'status',
             '背包': 'inventory', '物品': 'inventory', 'inventory': 'inventory', 'inv': 'inventory', 'i': 'inventory',
@@ -45,21 +47,17 @@ export class Parser {
             '读档': 'load', '加载': 'load', 'load': 'load',
             '帮助': 'help', 'help': 'help', 'h': 'help', '?': 'help',
             '清屏': 'clear', 'clear': 'clear', 'cls': 'clear',
-            '装备': 'equip_list', 'equip': 'equip_list',
+            '装备栏': 'equip_list',
         };
     }
 
-    /**
-     * 解析玩家输入
-     * @returns {object} { type, verb, target, direction, raw }
-     */
     parse(input) {
         const raw = input.trim();
         if (!raw) return { type: 'empty', raw };
 
         const lower = raw.toLowerCase();
 
-        // 1. 检查是否为方向指令（单字/单词）
+        // 1. 方向
         if (this.directions[lower] || this.directions[raw]) {
             return {
                 type: 'move',
@@ -68,7 +66,7 @@ export class Parser {
             };
         }
 
-        // 2. 检查是否为系统命令
+        // 2. 系统命令
         if (this.systemCmds[raw] || this.systemCmds[lower]) {
             return {
                 type: 'system',
@@ -77,12 +75,23 @@ export class Parser {
             };
         }
 
-        // 3. 解析 "动词 + 目标" 结构
+        // 3. 快捷指令（无目标，使用默认目标）
+        const quickCmds = {
+            '对话': { type: 'quick', verb: 'talk' },
+            '拾取': { type: 'quick', verb: 'take' },
+            '攻击': { type: 'quick', verb: 'attack' },
+            '打坐': { type: 'quick', verb: 'meditate' },
+            '休息': { type: 'quick', verb: 'rest' },
+        };
+        if (quickCmds[raw]) {
+            return { ...quickCmds[raw], target: null, raw };
+        }
+
+        // 4. 动词 + 目标
         const parts = this._tokenize(raw);
         if (parts.length >= 1) {
             const firstWord = parts[0];
             const verb = this.verbs[firstWord] || this.verbs[firstWord.toLowerCase()];
-
             if (verb) {
                 const target = parts.slice(1).join(' ');
                 return {
@@ -94,7 +103,7 @@ export class Parser {
             }
         }
 
-        // 4. 检查 "去 + 方向" 格式
+        // 5. "去 + 方向"
         if (raw.startsWith('去') || raw.startsWith('往')) {
             const dirPart = raw.substring(1).trim();
             const dir = this.directions[dirPart];
@@ -103,20 +112,20 @@ export class Parser {
             }
         }
 
-        // 5. 无法识别
-        return {
-            type: 'unknown',
-            raw
-        };
+        // 6. 特殊命令
+        if (raw === '突破') {
+            return { type: 'action', verb: 'breakthrough', target: null, raw };
+        }
+        if (raw === '新游戏' || raw === '重新开始') {
+            return { type: 'system', verb: 'newgame', raw };
+        }
+
+        return { type: 'unknown', raw };
     }
 
-    // 简单分词（按空格和常见分隔）
     _tokenize(input) {
-        // 先按空格分
         let parts = input.split(/\s+/).filter(p => p);
         if (parts.length > 1) return parts;
-
-        // 尝试按动词前缀分
         for (const verb of Object.keys(this.verbs)) {
             if (input.startsWith(verb) && input.length > verb.length) {
                 return [verb, input.substring(verb.length).trim()];
