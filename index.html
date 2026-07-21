@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>西行·万劫</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <!-- 顶部状态栏 -->
+        <header id="status-bar">
+            <span id="game-title">《西行·万劫》</span>
+            <span id="char-info">角色：无名 | 境界：凡人</span>
+            <span id="resource-info">🪙 0 | 💎 0</span>
+            <span id="time-info">第1日·春·卯时·晴</span>
+        </header>
+
+        <!-- 主文字输出区 -->
+        <main id="output-area">
+            <div id="text-output"></div>
+        </main>
+
+        <!-- 指令输入区 -->
+        <footer id="input-area">
+            <span class="prompt-symbol">&gt;</span>
+            <input type="text" id="command-input" placeholder="输入指令...（输入 帮助 查看命令）" autocomplete="off" autofocus>
+            <button id="send-btn">执行</button>
+        </footer>
+
+        <!-- 底部快捷按钮 -->
+        <nav id="quick-nav">
+            <button data-cmd="状态">状态</button>
+            <button data-cmd="背包">背包</button>
+            <button data-cmd="技能">技能</button>
+            <button data-cmd="地图">地图</button>
+            <button data-cmd="存档">存档</button>
+            <button data-cmd="帮助">帮助</button>
+        </nav>
+    </div>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
